@@ -339,8 +339,85 @@ class _HomePageState extends State<HomePage> {
 
   }
 
-  void _showEditDialog(BuildContext context, Barang item) {
+  void _showEditDialog(BuildContext context, Barang barang) {
+    final namaController = TextEditingController(text: barang.namaBarang);
+    String selectedUnit = barang.satuan;
 
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit ${barang.namaBarang}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: namaController,
+              decoration: InputDecoration(labelText: 'Nama Barang'),
+            ),
+            SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: selectedUnit,
+              items: ['kg', 'liter', 'pcs', 'pack', 'unit'].map((unit) {
+                return DropdownMenuItem(
+                  value: unit,
+                  child: Text(unit),
+                );
+              }).toList(),
+              onChanged: (value) => selectedUnit = value!,
+              decoration: InputDecoration(labelText: 'Satuan'),
+            ),
+            SizedBox(height: 16),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: Text('Batal'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: Text('Simpan'),
+            onPressed: () async {
+              bool success = await ApiService().updateBarang(
+                barang.id,
+                namaController.text,
+                selectedUnit,
+              );
+
+              if (success) {
+                setState(() {
+                  final updatedBarang = barang.copyWith(
+                    namaBarang: namaController.text,
+                    satuan: selectedUnit,
+                  );
+
+                  // Update daftarBarang
+                  final barangIndex = daftarBarang.indexWhere((b) => b.id == barang.id);
+                  if (barangIndex != -1) {
+                    daftarBarang[barangIndex] = updatedBarang;
+                  }
+
+                  // Update batchBarang untuk memastikan perubahan nama muncul di "Status Kadaluarsa"
+                  setState(() {
+                    batchBarang = batchBarang.map((batch) {
+                      if (batch.barangId == barang.id) {
+                        return batch.copyWith(namaBarang: namaController.text);
+                      }
+                      return batch;
+                    }).toList();
+                  });
+                });
+
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Gagal memperbarui barang")),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _showDeleteDialog(BuildContext context, Barang item) {

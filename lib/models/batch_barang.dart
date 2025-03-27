@@ -41,11 +41,12 @@ class BatchBarang {
   BatchBarang copyWith({
     int? stok,
     String? tanggalKadaluarsa,
+    String? namaBarang,
   }) {
     return BatchBarang(
       id: id,
       barangId: barangId,
-      namaBarang: namaBarang,
+      namaBarang: namaBarang ?? this.namaBarang,
       stok: stok ?? this.stok,
       satuan: satuan,
       tanggalKadaluarsa: tanggalKadaluarsa ?? this.tanggalKadaluarsa,

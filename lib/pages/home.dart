@@ -4,6 +4,8 @@ import '../services/api_service.dart';
 import 'login.dart';
 import '../models/barang.dart';
 import '../models/batch_barang.dart';
+import 'transaction.dart';
+
 
 class HomePage extends StatefulWidget {
   final String? username;
@@ -176,10 +178,10 @@ class _HomePageState extends State<HomePage> {
               title: Text("Transaksi"),
               onTap: (){
                 Navigator.pop(context);
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(builder: (context) => TransactionPage()),
-                // );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TransactionsPage()),
+                );
               },
             ),
             ListTile(

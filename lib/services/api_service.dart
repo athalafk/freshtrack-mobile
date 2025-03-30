@@ -92,4 +92,19 @@ class ApiService {
       return false;
     }
   }
+
+  Future<bool> deleteBarang(int id) async {
+    try {
+      final response = await _dio.delete(
+        '/api/barang/$id',
+        options: Options(headers: await _getHeaders()),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error deleteBarang: $e');
+      return false;
+    }
+  }
+  
 }

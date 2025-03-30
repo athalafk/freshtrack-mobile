@@ -5,7 +5,7 @@ import 'login.dart';
 import '../models/barang.dart';
 import '../models/batch_barang.dart';
 import 'transaction.dart';
-
+import 'history.dart';
 
 class HomePage extends StatefulWidget {
   final String? username;
@@ -189,10 +189,10 @@ class _HomePageState extends State<HomePage> {
               title: Text("Riwayat"),
               onTap: (){
                 Navigator.pop(context);
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(builder: (context) => HistoryPage()),
-                // );
+                 Navigator.push(
+                   context,
+                   MaterialPageRoute(builder: (context) => HistoryPage()),
+                 );
               },
             )
           ],
@@ -423,6 +423,37 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showDeleteDialog(BuildContext context, Barang item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Hapus ${barang.namaBarang}?'),
+        content: Text('Apakah Anda yakin ingin menghapus barang ini?'),
+        actions: [
+          TextButton(
+            child: Text('Batal'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: Text('Hapus'),
+            onPressed: () async {
+              bool success = await ApiService().deleteBarang(barang.id);
 
+              if (success) {
+                setState(() {
+                  daftarBarang.removeWhere((b) => b.id == barang.id);
+                  batchBarang.removeWhere((batch) => batch.barangId == barang.id);
+                });
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Gagal menghapus barang")),
+                );
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          ),
+        ],
+      ),
+    );
   }
 }

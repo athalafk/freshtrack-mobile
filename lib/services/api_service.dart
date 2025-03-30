@@ -6,7 +6,7 @@ import '../data/models/barang.dart';
 import '../data/models/batch_barang.dart';
 
 class ApiService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://freshtrack-backup-production.up.railway.app'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://freshtrack-backup.onrender.com'));
 
   Future<User?> login(String username, String password) async {
     try {

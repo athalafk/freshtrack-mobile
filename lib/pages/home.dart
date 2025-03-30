@@ -422,7 +422,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, Barang item) {
+  void _showDeleteDialog(BuildContext context, Barang barang) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:freshtrack/services/api_service.dart';
 import 'home.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,26 +13,34 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   final ApiService apiService = ApiService();
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
-  void _login() async {
+  Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      final token = await apiService.login(
-        usernameController.text,
-        passwordController.text,
-      );
+      setState(() => _isLoading = true);
 
-      if (token != null) {
-        final prefs = await SharedPreferences.getInstance();
-        String? username = prefs.getString('username');
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage(username: username)),
+      try {
+        final user = await apiService.login(
+          usernameController.text,
+          passwordController.text,
         );
-      } else {
+
+        if (user != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage(username: user.username)),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Login gagal, periksa kembali username & kata sandi!')),
+          );
+        }
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login gagal, periksa kembali email & kata sandi!')),
+          SnackBar(content: Text('Terjadi kesalahan saat login')),
         );
+      } finally {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -111,7 +118,9 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                 ),
-                ElevatedButton(
+                _isLoading
+                    ? CircularProgressIndicator()
+                    : ElevatedButton(
                   onPressed: _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,

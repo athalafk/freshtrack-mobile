@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import 'login.dart';
-import '../models/barang.dart';
-import '../models/batch_barang.dart';
+import '../data/models/barang.dart';
+import '../data/models/batch_barang.dart';
+import '../data/sources/barang_data_source.dart';
+import '../data/sources/batch_data_source.dart';
 import 'transaction.dart';
 import 'history.dart';
 
@@ -16,8 +17,8 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  String selectedTab = 'Daftar Barang';
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
   bool isLoading = true;
   List<Barang> daftarBarang = [];
   List<BatchBarang> batchBarang = [];
@@ -25,7 +26,14 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   void _showLogoutDialog(BuildContext context) {
@@ -103,7 +111,7 @@ class _HomePageState extends State<HomePage> {
       DateTime today = DateTime.now();
       return expiryDate.difference(today).inDays;
     } catch (e) {
-      return -1; // Jika format tanggal tidak valid
+      return -1;
     }
   }
 
@@ -114,39 +122,41 @@ class _HomePageState extends State<HomePage> {
         title: Text('Inventori', style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFF4796BD),
         actions: [
-          PopupMenuButton<String>(
-            icon: Icon(Icons.account_circle_outlined, color: Colors.white),
-            onSelected: (value) {
-              if (value == 'logout') {
-                _showLogoutDialog(context);
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                PopupMenuItem<String>(
-                  enabled: false,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.username ?? 'Pengguna',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Divider(),
-                    ],
+          IconButton(
+            icon: Stack(
+              children: [
+                Icon(Icons.account_circle_outlined, color: Colors.white, size: 30),
+              ],
+            ),
+            onPressed: () {
+              showMenu(
+                context: context,
+                position: RelativeRect.fromLTRB(50, 70, 0, 0),
+                items: [
+                  PopupMenuItem(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.username ?? 'Pengguna',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Divider(),
+                      ],
+                    ),
                   ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Logout'),
-                    ],
+                  PopupMenuItem(
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Logout'),
+                      ],
+                    ),
+                    onTap: () => _showLogoutDialog(context),
                   ),
-                ),
-              ];
+                ],
+              );
             },
           ),
         ],
@@ -156,7 +166,7 @@ class _HomePageState extends State<HomePage> {
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
+              decoration: BoxDecoration(color: Color(0xFF4796BD)),
               child: Text(
                 "Menu",
                 style: TextStyle(color: Colors.white, fontSize: 24),
@@ -189,25 +199,30 @@ class _HomePageState extends State<HomePage> {
               title: Text("Riwayat"),
               onTap: (){
                 Navigator.pop(context);
-                 Navigator.push(
-                   context,
-                   MaterialPageRoute(builder: (context) => HistoryPage()),
-                 );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HistoryPage()),
+                );
               },
             )
           ],
         ),
       ),
+
       body: Column(
         children: [
+          // Tab Bar
           Container(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildTabButton('Daftar Barang'),
-                SizedBox(width: 16),
-                _buildTabButton('Status Kadaluarsa'),
+            color: Color(0xFF4796BD),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white.withOpacity(0.7),
+              indicatorColor: Colors.orange,
+              indicatorWeight: 3,
+              tabs: [
+                Tab(text: 'Daftar Barang'),
+                Tab(text: 'Status Kadaluarsa'),
               ],
             ),
           ),
@@ -235,15 +250,27 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // Content
+          // Tab Content
           Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 0),
-              child: isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : selectedTab == 'Daftar Barang'
-                  ? _buildInventoryList(daftarBarang)
-                  : _buildExpiryStatusList(),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Tab 1: Daftar Barang
+                isLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : RefreshIndicator(
+                  onRefresh: _fetchData,
+                  child: _buildInventoryList(daftarBarang),
+                ),
+
+                // Tab 2: Status Kadaluarsa
+                isLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : RefreshIndicator(
+                  onRefresh: _fetchData,
+                  child: _buildExpiryStatusList(),
+                ),
+              ],
             ),
           ),
         ],
@@ -251,51 +278,21 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTabButton(String title) {
-    return ChoiceChip(
-      label: Text(title),
-      selected: selectedTab == title,
-      selectedColor: Colors.blue,
-      labelStyle: TextStyle(
-        color: selectedTab == title ? Colors.white : Colors.black,
-      ),
-      onSelected: (_) => setState(() => selectedTab = title),
-    );
-  }
-
   Widget _buildInventoryList(List<Barang> items) {
     return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columns: [
-            DataColumn(label: Text('Barang', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Stok', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Satuan', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Aksi', style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-          rows: items.map((item) => DataRow(
-            cells: [
-              DataCell(Text(item.namaBarang)),
-              DataCell(Text(item.totalStok.toString())),
-              DataCell(Text(item.satuan)),
-              DataCell(
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () => _showEditDialog(context, item),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _showDeleteDialog(context, item),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          )).toList(),
+      child: PaginatedDataTable(
+        header: Text('Daftar Barang', style: TextStyle(fontWeight: FontWeight.bold)),
+        rowsPerPage: _calculateRowsPerPage(),
+        columns: const [
+          DataColumn(label: Text('Barang')),
+          DataColumn(label: Text('Stok'), numeric: true),
+          DataColumn(label: Text('Satuan')),
+          DataColumn(label: Text('Aksi')),
+        ],
+        source: BarangDataSource(
+          data: items,
+          onEdit: (item) => _showEditDialog(context, item),
+          onDelete: (item) => _showDeleteDialog(context, item),
         ),
       ),
     );
@@ -305,40 +302,28 @@ class _HomePageState extends State<HomePage> {
     if (batchBarang.isEmpty) return Center(child: Text('Tidak ada data kadaluarsa'));
 
     return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columnSpacing: 20,
-        dataRowHeight: 48,
-        headingRowHeight: 56,
-        columns: [
+      child: PaginatedDataTable(
+        header: Text('Status Kadaluarsa', style: TextStyle(fontWeight: FontWeight.bold)),
+        rowsPerPage: _calculateRowsPerPage(),
+        columns: const [
           DataColumn(label: Text('Barang')),
           DataColumn(label: Text('Stok'), numeric: true),
           DataColumn(label: Text('Tanggal Kadaluarsa')),
           DataColumn(label: Text('Sisa Hari'), numeric: true),
           DataColumn(label: Text('Status')),
         ],
-        rows: batchBarang.map((item) {
-          final days = item.hariMenujuKadaluarsa;
-          return DataRow(
-            cells: [
-              DataCell(Text(item.namaBarang)),
-              DataCell(Text(item.stok.toString())),
-              DataCell(Text(DateFormat('dd/MM/yyyy').format(DateTime.parse(item.tanggalKadaluarsa)))),
-              DataCell(Text(days > 0 ? '$days hari' : 'Expired')),
-              DataCell(
-                days > 14
-                    ? Icon(Icons.check_circle, color: Colors.green)
-                    : Icon(Icons.warning, color: days > 0 ? Colors.orange : Colors.red),
-              ),
-            ],
-          );
-        }).toList(),
+        source: BatchBarangDataSource(data: batchBarang),
       ),
     );
   }
 
-  void _showSortDialog(BuildContext context) {
+  int _calculateRowsPerPage() {
+    final mediaQuery = MediaQuery.of(context);
+    return (mediaQuery.size.height / kMinInteractiveDimension).floor().clamp(3, 10);
+  }
 
+  void _showSortDialog(BuildContext context) {
+    // Implement your sort dialog here
   }
 
   void _showEditDialog(BuildContext context, Barang barang) {
@@ -392,23 +377,18 @@ class _HomePageState extends State<HomePage> {
                     satuan: selectedUnit,
                   );
 
-                  // Update daftarBarang
                   final barangIndex = daftarBarang.indexWhere((b) => b.id == barang.id);
                   if (barangIndex != -1) {
                     daftarBarang[barangIndex] = updatedBarang;
                   }
 
-                  // Update batchBarang untuk memastikan perubahan nama muncul di "Status Kadaluarsa"
-                  setState(() {
-                    batchBarang = batchBarang.map((batch) {
-                      if (batch.barangId == barang.id) {
-                        return batch.copyWith(namaBarang: namaController.text);
-                      }
-                      return batch;
-                    }).toList();
-                  });
+                  batchBarang = batchBarang.map((batch) {
+                    if (batch.barangId == barang.id) {
+                      return batch.copyWith(namaBarang: namaController.text);
+                    }
+                    return batch;
+                  }).toList();
                 });
-
                 Navigator.pop(context);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(

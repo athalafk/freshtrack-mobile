@@ -1,35 +1,53 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/user.dart';
-import '../models/barang.dart';
-import '../models/batch_barang.dart';
+import '../data/models/user.dart';
+import '../data/models/barang.dart';
+import '../data/models/batch_barang.dart';
 
 class ApiService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://your_ip:3000'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://freshtrack-backup-production.up.railway.app'));
 
-  Future<String?> login(String username, String password) async {
+  Future<User?> login(String username, String password) async {
     try {
       final response = await _dio.post('/api/auth/login', data: {
         'username': username,
         'password': password,
       });
 
-      String token = response.data['token'];
+      final userData = response.data['user'];
+      final token = response.data['token'];
 
+      if (userData == null || token == null) {
+        throw Exception('Invalid response format');
+      }
+
+      final user = User.fromJson(userData);
+
+      // Save to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', token);
-      await prefs.setString('username', username);
+      await prefs.setString('user', jsonEncode(user.toJson()));
 
-      return token; // Sukses login
+      return user;
+    } on DioException catch (e) {
+      print('Login error: ${e.response?.data ?? e.message}');
+      return null;
     } catch (e) {
-      return null; // Gagal login
+      print('Unexpected login error: $e');
+      return null;
     }
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    await prefs.remove('username');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      await prefs.remove('user');
+    } catch (e) {
+      print('Logout error: $e');
+      rethrow;
+    }
   }
 
   Future<List<Barang>> getBarang() async {
@@ -39,13 +57,15 @@ class ApiService {
         options: Options(headers: await _getHeaders()),
       );
 
-      print('Response barang: ${response.data}'); // Debug
+      if (response.data is! List) {
+        throw Exception('Invalid response format');
+      }
 
       return (response.data as List)
           .map((item) => Barang.fromJson(item))
           .toList();
     } on DioException catch (e) {
-      print('Error getBarang: ${e.response?.data}');
+      print('Error getBarang: ${e.response?.data ?? e.message}');
       return [];
     }
   }
@@ -57,22 +77,36 @@ class ApiService {
         options: Options(headers: await _getHeaders()),
       );
 
-      print('Response batch: ${response.data}'); // Debug
+      if (response.data is! List) {
+        throw Exception('Invalid response format');
+      }
 
       return (response.data as List)
           .map((item) => BatchBarang.fromJson(item))
           .toList();
     } on DioException catch (e) {
-      print('Error getBatchBarang: ${e.response?.data}');
+      print('Error getBatchBarang: ${e.response?.data ?? e.message}');
       return [];
     }
   }
 
   Future<Map<String, String>> _getHeaders() async {
-    final prefs = await SharedPreferences.getInstance();
-    return {
-      'Authorization': 'Bearer ${prefs.getString('token')}',
-    };
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        throw Exception('No token found');
+      }
+
+      return {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+    } catch (e) {
+      print('Error getting headers: $e');
+      rethrow;
+    }
   }
 
   Future<bool> updateBarang(int id, String namaBarang, String satuan) async {
@@ -87,8 +121,8 @@ class ApiService {
       );
 
       return response.statusCode == 200;
-    } catch (e) {
-      print('Error updateBarang: $e');
+    } on DioException catch (e) {
+      print('Error updateBarang: ${e.response?.data ?? e.message}');
       return false;
     }
   }
@@ -101,10 +135,24 @@ class ApiService {
       );
 
       return response.statusCode == 200;
-    } catch (e) {
-      print('Error deleteBarang: $e');
+    } on DioException catch (e) {
+      print('Error deleteBarang: ${e.response?.data ?? e.message}');
       return false;
     }
   }
-  
+
+  Future<User?> getCurrentUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('user');
+
+      if (userJson != null) {
+        return User.fromJson(jsonDecode(userJson));
+      }
+      return null;
+    } catch (e) {
+      print('Error getting current user: $e');
+      return null;
+    }
+  }
 }

@@ -5,7 +5,7 @@ import '../models/barang.dart';
 import '../models/batch_barang.dart';
 
 class ApiService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://your_api:3000'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://your_ip:3000'));
 
   Future<String?> login(String username, String password) async {
     try {

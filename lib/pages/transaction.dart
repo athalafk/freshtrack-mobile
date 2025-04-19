@@ -3,8 +3,10 @@ import 'home.dart';
 import 'login.dart';
 import '../services/api_service.dart';
 
-
 class TransactionsPage extends StatefulWidget {
+  final String? username;
+  TransactionsPage({this.username});
+
   @override
   _TransactionsPageState createState() => _TransactionsPageState();
 }
@@ -52,46 +54,99 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
     return Scaffold(
       appBar: AppBar(
         title: Text('Transaksi', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: Color(0xFF4796BD),
         actions: [
-          PopupMenuButton<String>(
-            icon: Icon(Icons.account_circle_outlined, color: Colors.white),
-            onSelected: (value) {
-              if (value == 'logout') {
-                _showLogoutDialog(context);
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                PopupMenuItem<String>(
-                  enabled: false,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Pengguna', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Divider(),
-                    ],
+          IconButton(
+            icon: Stack(
+              children: [
+                Icon(Icons.account_circle_outlined, color: Colors.white, size: 30),
+              ],
+            ),
+            onPressed: () {
+              showMenu(
+                context: context,
+                position: RelativeRect.fromLTRB(50, 70, 0, 0),
+                items: [
+                  PopupMenuItem(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.username ?? 'Pengguna',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Divider(),
+                      ],
+                    ),
                   ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Logout'),
-                    ],
+                  PopupMenuItem(
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Logout'),
+                      ],
+                    ),
+                    onTap: () => _showLogoutDialog(context),
                   ),
-                ),
-              ];
+                ],
+              );
             },
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(text: 'Masuk'),
-            Tab(text: 'Keluar'),
+            Tab(child: Text('Masuk', style: TextStyle(color: Colors.white))),
+            Tab(child: Text('Keluar', style: TextStyle(color: Colors.white))),
+          ],
+          labelColor: Colors.white,
+        ),
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(color: Color(0xFF4796BD)),
+              child: Text(
+                "Menu",
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.inventory),
+              title: Text("Inventori"),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomePage(username: widget.username)),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.assignment_outlined),
+              title: Text("Transaksi"),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TransactionsPage(username: widget.username)),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.history),
+              title: Text("Riwayat"),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => HistoryPage()),
+                // );
+              },
+            ),
           ],
         ),
       ),
@@ -118,7 +173,7 @@ class TransactionForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          Text(title, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
           Divider(),
           SizedBox(height: 16),
           TextField(
@@ -160,21 +215,21 @@ class TransactionForm extends StatelessWidget {
             ),
           ],
           SizedBox(height: 16),
-          TextButton.icon(
+          OutlinedButton.icon(
             onPressed: () {},
             icon: Icon(Icons.add, color: Colors.blue),
             label: Text('Tambah Barang', style: TextStyle(color: Colors.blue)),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.transparent,
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.blue),
             ),
           ),
           SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {},
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.cyan,
+              backgroundColor: Colors.blue,
             ),
-            child: Text('Simpan'),
+            child: Text('Simpan', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -190,18 +245,16 @@ Future<void> _performLogout(BuildContext context) async {
       builder: (context) => Center(child: CircularProgressIndicator()),
     );
 
-    // Panggil API logout
     await ApiService().logout();
 
-    // Navigasi ke halaman login
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => LoginPage()),
     );
   } catch (e) {
-    Navigator.pop(context); 
+    Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gagal logout: ${e.toString()}')),
+      SnackBar(content: Text('Gagal logout: \${e.toString()}')),
     );
   }
 }

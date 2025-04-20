@@ -123,7 +123,7 @@ class ApiService {
   Future<bool> updateBarang(int id, String namaBarang, String satuan) async {
     try {
       final response = await _dio.put(
-        '/api/barang/$id',
+        '/api/barang/update/$id',
         options: Options(headers: await _getHeaders()),
         data: {
           'nama_barang': namaBarang,
@@ -141,7 +141,7 @@ class ApiService {
   Future<bool> deleteBarang(int id) async {
     try {
       final response = await _dio.delete(
-        '/api/barang/update/$id',
+        '/api/barang/$id',
         options: Options(headers: await _getHeaders()),
       );
 

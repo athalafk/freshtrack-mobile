@@ -16,7 +16,8 @@ class ApiService {
       });
 
       final userData = response.data['user'];
-      final token = response.data['token'];
+      final token = response.data['access_token'];
+      final token_type = response.data['token_type'];
 
       if (userData == null || token == null) {
         throw Exception('Invalid response format');
@@ -24,9 +25,9 @@ class ApiService {
 
       final user = User.fromJson(userData);
 
-      // Save to SharedPreferences
+      // Simpan ke SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', token);
+      await prefs.setString('token', '$token_type $token');
       await prefs.setString('user', jsonEncode(user.toJson()));
 
       return user;
@@ -39,14 +40,24 @@ class ApiService {
     }
   }
 
-  Future<void> logout() async {
+  Future<bool> logout() async {
     try {
+      final response = await _dio.post(
+        '/api/auth/logout',
+        options: Options(headers: await _getHeaders()),
+      );
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('token');
       await prefs.remove('user');
+
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      print('Logout error: ${e.response?.data ?? e.message}');
+      return false;
     } catch (e) {
-      print('Logout error: $e');
-      rethrow;
+      print('Unexpected logout error: $e');
+      return false;
     }
   }
 
@@ -100,7 +111,7 @@ class ApiService {
       }
 
       return {
-        'Authorization': 'Bearer $token',
+        'Authorization': token,
         'Content-Type': 'application/json',
       };
     } catch (e) {
@@ -130,7 +141,7 @@ class ApiService {
   Future<bool> deleteBarang(int id) async {
     try {
       final response = await _dio.delete(
-        '/api/barang/$id',
+        '/api/barang/update/$id',
         options: Options(headers: await _getHeaders()),
       );
 

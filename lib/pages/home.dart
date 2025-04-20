@@ -51,6 +51,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             child: Text('Logout', style: TextStyle(color: Colors.red)),
             onPressed: () async {
               Navigator.pop(context);
+              await Future.delayed(Duration(milliseconds: 100));
               await _performLogout(context);
             },
           ),
@@ -60,20 +61,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Future<void> _performLogout(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    final scaffold = ScaffoldMessenger.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(child: CircularProgressIndicator()),
+    );
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => Center(child: CircularProgressIndicator()),
-      );
       await ApiService().logout();
-      Navigator.pushReplacement(
-        context,
+
+      navigator.pushReplacement(
         MaterialPageRoute(builder: (context) => LoginPage()),
       );
     } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      navigator.pop();
+      scaffold.showSnackBar(
         SnackBar(content: Text('Gagal logout: ${e.toString()}')),
       );
     }

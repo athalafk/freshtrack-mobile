@@ -40,7 +40,7 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
           TextButton(
             child: Text('Logout', style: TextStyle(color: Colors.red)),
             onPressed: () async {
-              Navigator.pop(context); // Tutup dialog
+              Navigator.pop(context);
               await _performLogout(context);
             },
           ),
@@ -57,11 +57,7 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
         backgroundColor: Color(0xFF4796BD),
         actions: [
           IconButton(
-            icon: Stack(
-              children: [
-                Icon(Icons.account_circle_outlined, color: Colors.white, size: 30),
-              ],
-            ),
+            icon: Icon(Icons.account_circle_outlined, color: Colors.white, size: 30),
             onPressed: () {
               showMenu(
                 context: context,
@@ -71,10 +67,7 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.username ?? 'Pengguna',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
+                        Text(widget.username ?? 'Pengguna', style: TextStyle(fontWeight: FontWeight.bold)),
                         Divider(),
                       ],
                     ),
@@ -100,7 +93,6 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
             Tab(child: Text('Masuk', style: TextStyle(color: Colors.white))),
             Tab(child: Text('Keluar', style: TextStyle(color: Colors.white))),
           ],
-          labelColor: Colors.white,
         ),
       ),
       drawer: Drawer(
@@ -109,20 +101,14 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
           children: [
             DrawerHeader(
               decoration: BoxDecoration(color: Color(0xFF4796BD)),
-              child: Text(
-                "Menu",
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
+              child: Text("Menu", style: TextStyle(color: Colors.white, fontSize: 24)),
             ),
             ListTile(
               leading: Icon(Icons.inventory),
               title: Text("Inventori"),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => HomePage(username: widget.username)),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage(username: widget.username)));
               },
             ),
             ListTile(
@@ -130,10 +116,7 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
               title: Text("Transaksi"),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => TransactionsPage(username: widget.username)),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => TransactionsPage(username: widget.username)));
               },
             ),
             ListTile(
@@ -141,10 +124,7 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
               title: Text("Riwayat"),
               onTap: () {
                 Navigator.pop(context);
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(builder: (context) => HistoryPage()),
-                // );
+                // Belum implementasi
               },
             ),
           ],
@@ -160,11 +140,48 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
     );
   }
 }
-
-class TransactionForm extends StatelessWidget {
+class TransactionForm extends StatefulWidget {
   final String title;
-
   TransactionForm({required this.title});
+
+  @override
+  _TransactionFormState createState() => _TransactionFormState();
+}
+
+class _TransactionFormState extends State<TransactionForm> {
+  final List<String> barangList = [
+    'Beras',
+    'Gula',
+    'Minyak Goreng',
+    'Tepung Terigu',
+    'Kecap',
+    'Garam',
+    'Minyak Sawit'
+  ];
+
+  DateTime? _selectedDate;
+  final TextEditingController _dateController = TextEditingController();
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _dateController.text = "${picked.day}/${picked.month}/${picked.year}";
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _dateController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -173,69 +190,85 @@ class TransactionForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
+          Text(
+            widget.title,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
           Divider(),
+          SizedBox(height: 16),
+          Autocomplete<String>(
+            optionsBuilder: (TextEditingValue textEditingValue) {
+              if (textEditingValue.text.isEmpty) {
+                return const Iterable<String>.empty();
+              }
+              return barangList.where((String barang) {
+                return barang.toLowerCase().contains(textEditingValue.text.toLowerCase());
+              });
+            },
+            onSelected: (String selection) {
+              // nanti implementasi pilihan di sini
+            },
+            fieldViewBuilder: (BuildContext context, TextEditingController textEditingController, FocusNode focusNode, VoidCallback onFieldSubmitted) {
+              return TextField(
+                controller: textEditingController,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  labelText: 'Nama Barang',
+                  filled: true,
+                  fillColor: Colors.grey.shade200,
+                  border: InputBorder.none,
+                ),
+              );
+            },
+          ),
           SizedBox(height: 16),
           TextField(
             decoration: InputDecoration(
-              labelText: 'Nama Barang',
-              filled: true,
-              fillColor: Colors.grey.shade200,
-              border: InputBorder.none,
-            ),
-          ),
-          SizedBox(height: 8),
-          TextField(
-            decoration: InputDecoration(
-              labelText: 'Stok Barang',
+              labelText: 'Stok',
               filled: true,
               fillColor: Colors.grey.shade200,
               border: InputBorder.none,
             ),
             keyboardType: TextInputType.number,
           ),
-          SizedBox(height: 8),
-          TextField(
-            decoration: InputDecoration(
-              labelText: 'Satuan',
-              filled: true,
-              fillColor: Colors.grey.shade200,
-              border: InputBorder.none,
-            ),
-          ),
-          if (title == 'Barang Masuk') ...[
-            SizedBox(height: 8),
+          if (widget.title == 'Barang Masuk') ...[
+            SizedBox(height: 16),
             TextField(
+              controller: _dateController,
               decoration: InputDecoration(
-                labelText: 'Expiry Date',
+                labelText: 'Tanggal Expired',
                 filled: true,
                 fillColor: Colors.grey.shade200,
                 border: InputBorder.none,
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.calendar_today),
+                  onPressed: () => _selectDate(context),
+                ),
               ),
+              readOnly: true,
+              onTap: () => _selectDate(context),
             ),
           ],
-          SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: Icon(Icons.add, color: Colors.blue),
-            label: Text('Tambah Barang', style: TextStyle(color: Colors.blue)),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: Colors.blue),
-            ),
-          ),
-          SizedBox(height: 16),
+          SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              // nanti implementasi simpan di sini
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
+              minimumSize: Size(double.infinity, 50),
             ),
-            child: Text('Simpan', style: TextStyle(color: Colors.white)),
+            child: Text(
+              'Simpan',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
           ),
         ],
       ),
     );
   }
 }
+
 
 Future<void> _performLogout(BuildContext context) async {
   try {
@@ -254,7 +287,7 @@ Future<void> _performLogout(BuildContext context) async {
   } catch (e) {
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gagal logout: \${e.toString()}')),
+      SnackBar(content: Text('Gagal logout: ${e.toString()}')),
     );
   }
 }

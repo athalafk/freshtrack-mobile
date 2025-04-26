@@ -124,7 +124,7 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
               title: Text("Riwayat"),
               onTap: () {
                 Navigator.pop(context);
-                // Belum implementasi
+                Navigator.push(context, MaterialPageRoute(builder: (context) => HistoryPage(username: widget.username)));
               },
             ),
           ],

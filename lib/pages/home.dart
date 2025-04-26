@@ -7,6 +7,7 @@ import '../data/sources/barang_data_source.dart';
 import '../data/sources/batch_data_source.dart';
 import 'transaction.dart';
 import 'history.dart';
+import 'registration.dart';
 
 class HomePage extends StatefulWidget {
   final String? username;
@@ -183,6 +184,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => HomePage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.assignment_outlined),
+              title: Text("Daftar Barang"),
+              onTap: (){
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => RegistrationPage()),
                 );
               },
             ),

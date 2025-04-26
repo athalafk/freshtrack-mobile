@@ -2,34 +2,63 @@ import 'package:flutter/material.dart';
 import 'home.dart';
 import 'login.dart';
 import '../services/api_service.dart';
+import 'transaction.dart';
+import 'package:intl/intl.dart';
 
 class HistoryPage extends StatefulWidget {
+  final String? username;
+  HistoryPage({this.username});
   @override
   _HistoryPageState createState() => _HistoryPageState();
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
+  DateTime? _startDate;
+  DateTime? _endDate;
+  List<Map<String, dynamic>> _allTransactions = [
+    {'date': '20 Dec', 'type': 'Masuk', 'item': 'Beras', 'stock': '20', 'actor': 'admin'},
+    {'date': '25 Dec', 'type': 'Keluar', 'item': 'Minyak Goreng', 'stock': '35', 'actor': 'helmi'},
+    {'date': '25 Dec', 'type': 'Masuk', 'item': 'Gula', 'stock': '96', 'actor': 'athala'},
+    {'date': '25 Dec', 'type': 'Keluar', 'item': 'Garam', 'stock': '52', 'actor': 'bayu'},
+    {'date': '25 Dec', 'type': 'Masuk', 'item': 'Gula', 'stock': '180', 'actor': 'raihan'},
+  ];
+
+  List<Map<String, dynamic>> get _filteredTransactions {
+    if (_startDate == null && _endDate == null) return _allTransactions;
+
+    return _allTransactions.where((transaction) {
+      final transactionDate = DateFormat('dd MMM').parse(transaction['date']);
+      final currentYear = DateTime.now().year;
+      final fullDate = DateTime(currentYear, transactionDate.month, transactionDate.day);
+
+      if (_startDate != null && _endDate != null) {
+        return (fullDate.isAfter(_startDate!) || fullDate.isAtSameMomentAs(_startDate!)) &&
+            (fullDate.isBefore(_endDate!) || fullDate.isAtSameMomentAs(_endDate!));
+      } else if (_startDate != null) {
+        return fullDate.isAfter(_startDate!) || fullDate.isAtSameMomentAs(_startDate!);
+      } else if (_endDate != null) {
+        return fullDate.isBefore(_endDate!) || fullDate.isAtSameMomentAs(_endDate!);
+      }
+      return true;
+    }).toList();
+  }
+
+  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+    final DateTime? picked = await showDatePicker(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Konfirmasi Logout'),
-        content: Text('Apakah Anda yakin ingin logout?'),
-        actions: [
-          TextButton(
-            child: Text('Batal'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          TextButton(
-            child: Text('Logout', style: TextStyle(color: Colors.red)),
-            onPressed: () async {
-              Navigator.pop(context);
-              await _performLogout(context);
-            },
-          ),
-        ],
-      ),
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
     );
+    if (picked != null) {
+      setState(() {
+        if (isStartDate) {
+          _startDate = picked;
+        } else {
+          _endDate = picked;
+        }
+      });
+    }
   }
 
   @override
@@ -38,76 +67,91 @@ class _HistoryPageState extends State<HistoryPage> {
       appBar: AppBar(
         title: Text('Riwayat', style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFF4796BD),
-        actions: [
-          PopupMenuButton<String>(
-            icon: Icon(Icons.account_circle_outlined, color: Colors.white),
-            onSelected: (value) {
-              if (value == 'logout') {
-                _showLogoutDialog(context);
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                PopupMenuItem<String>(
-                  enabled: false,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Pengguna', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Divider(),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Logout'),
-                    ],
-                  ),
-                ),
-              ];
-            },
-          ),
-        ],
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Rentang Riwayat',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
+            // Header dengan Rentang Riwayat di kanan dan Cetak PDF di kiri
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    // Cetak PDF functionality
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue.shade700,
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   child: Text('Cetak PDF', style: TextStyle(color: Colors.white)),
                 ),
-                SizedBox(width: 16),
-                TextButton(
-                  onPressed: () {},
-                  child: Text('Awal'),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  child: Text('Akhir'),
-                ),
               ],
             ),
             SizedBox(height: 16),
+
+            // Date Picker Section
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Awal Date Picker
+                InkWell(
+                  onTap: () => _selectDate(context, true),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Awal',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      Text(
+                        _startDate != null
+                            ? DateFormat('dd MMM yyyy').format(_startDate!)
+                            : 'Pilih Tanggal',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16),
+
+                // Akhir Date Picker
+                InkWell(
+                  onTap: () => _selectDate(context, false),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Akhir',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      Text(
+                        _endDate != null
+                            ? DateFormat('dd MMM yyyy').format(_endDate!)
+                            : 'Pilih Tanggal',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+
+            // Data Table
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -119,13 +163,24 @@ class _HistoryPageState extends State<HistoryPage> {
                     DataColumn(label: Text('Stok')),
                     DataColumn(label: Text('Pelaku')),
                   ],
-                  rows: [
-                    _buildDataRow('20 Dec', 'Masuk', 'Beras', '20', 'admin'),
-                    _buildDataRow('25 Dec', 'Keluar', 'Minyak Goreng', '35', 'helmi'),
-                    _buildDataRow('25 Dec', 'Masuk', 'Gula', '96', 'athala'),
-                    _buildDataRow('25 Dec', 'Keluar', 'Garam', '52', 'bayu'),
-                    _buildDataRow('25 Dec', 'Masuk', 'Gula', '180', 'raihan'),
-                  ],
+                  rows: _filteredTransactions.map((transaction) {
+                    return DataRow(
+                      cells: [
+                        DataCell(Text(transaction['date'])),
+                        DataCell(Text(transaction['type'])),
+                        DataCell(Text(transaction['item'])),
+                        DataCell(
+                          Text(
+                            transaction['stock'],
+                            style: TextStyle(
+                              color: transaction['type'] == 'Keluar' ? Colors.red : null,
+                            ),
+                          ),
+                        ),
+                        DataCell(Text(transaction['actor'])),
+                      ],
+                    );
+                  }).toList(),
                 ),
               ),
             ),
@@ -143,49 +198,6 @@ class _HistoryPageState extends State<HistoryPage> {
           ],
         ),
       ),
-    );
-  }
-
-  DataRow _buildDataRow(String date, String type, String item, String stock, String actor) {
-    return DataRow(
-      cells: [
-        DataCell(Text(date)),
-        DataCell(Text(type)),
-        DataCell(Text(item)),
-        DataCell(
-          Text(
-            stock,
-            style: TextStyle(
-              color: type == 'Keluar' ? Colors.red : null,
-            ),
-          ),
-        ),
-        DataCell(Text(actor)),
-      ],
-    );
-  }
-}
-
-Future<void> _performLogout(BuildContext context) async {
-  try {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(child: CircularProgressIndicator()),
-    );
-
-    // Panggil API logout
-    await ApiService().logout();
-
-    // Navigasi ke halaman login
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginPage()),
-    );
-  } catch (e) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gagal logout: ${e.toString()}')),
     );
   }
 }

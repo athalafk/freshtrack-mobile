@@ -1,51 +1,51 @@
 import 'package:flutter/material.dart';
-import 'home.dart';
-import 'login.dart';
-import '../services/api_service.dart';
-import 'transaction.dart';
 import 'package:intl/intl.dart';
-
-void _showLogoutDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Konfirmasi Logout'),
-        content: Text('Apakah Anda yakin ingin logout?'),
-        actions: <Widget>[
-          TextButton(
-            child: Text('Batal'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: Text('Logout', style: TextStyle(color: Colors.red)),
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Lakukan proses logout di sini
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => LoginPage()),
-              );
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
+import 'common/appbar.dart';
+import 'common/drawer.dart';
+import '../services/data_service.dart';
+import '../data/models/user.dart';
 
 class HistoryPage extends StatefulWidget {
-  final String? username;
-  HistoryPage({this.username});
+  const HistoryPage({Key? key}) : super(key: key);
   @override
   _HistoryPageState createState() => _HistoryPageState();
 }
 
 class _HistoryPageState extends State<HistoryPage> {
+  bool isLoading = true;
+  User? currentUser;
   DateTime? _startDate;
   DateTime? _endDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      setState(() => isLoading = true);
+
+      final data = await DataService.fetchData(
+        fetchBarang: false,
+        fetchBatch: false,
+        fetchUser: true,
+      );
+
+      setState(() {
+        currentUser = data['user'] as User;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error _loadData: $e');
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memuat data: ${e.toString()}')),
+      );
+    }
+  }
+
   List<Map<String, dynamic>> _allTransactions = [
     {'date': '20 Dec 2024', 'type': 'Masuk', 'item': 'Beras', 'stock': '20', 'actor': 'admin'},
     {'date': '25 Dec 2024', 'type': 'Keluar', 'item': 'Minyak Goreng', 'stock': '35', 'actor': 'helmi'},
@@ -96,96 +96,12 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Riwayat', style: TextStyle(color: Colors.white)),
-        backgroundColor: Color(0xFF4796BD),
-          actions: [
-            IconButton(
-              icon: Stack(
-                children: [
-                  Icon(Icons.account_circle_outlined, color: Colors.white, size: 30),
-                ],
-              ),
-              onPressed: () {
-                showMenu(
-                  context: context,
-                  position: RelativeRect.fromLTRB(50, 70, 0, 0),
-                  items: [
-                    PopupMenuItem(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.username ?? 'Pengguna',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Divider(),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Logout'),
-                        ],
-                      ),
-                      onTap: () => _showLogoutDialog(context),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ]
+      appBar: CommonAppBar(
+        title: 'Riwayat',
+        currentUser: currentUser,
+        isLoading: isLoading,
       ),
-        drawer: Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              DrawerHeader(
-                decoration: BoxDecoration(color: Color(0xFF4796BD)),
-                child: Text(
-                  "Menu",
-                  style: TextStyle(color: Colors.white, fontSize: 24),
-                ),
-              ),
-              ListTile(
-                leading: Icon(Icons.inventory),
-                title: Text("Inventori"),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => HomePage()),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.assignment_outlined),
-                title: Text("Transaksi"),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => TransactionsPage()),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.history),
-                title: Text("Riwayat"),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(builder: (context) => HistoryPage()),
-                  // );
-                },
-              ),
-            ],
-          ),
-        ),
+      drawer: const CommonDrawer(),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(

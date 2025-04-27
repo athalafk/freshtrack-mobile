@@ -157,7 +157,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => HomePage(username: widget.username)),
+                    MaterialPageRoute(builder: (context) => HomePage()),
                   );
                 },
               ),

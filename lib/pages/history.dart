@@ -220,17 +220,6 @@ class _HistoryPageState extends State<HistoryPage> {
                 ),
               ),
             ),
-            SizedBox(height: 16),
-            Divider(),
-            Center(
-              child: Text(
-                'Copyright © | Fresh Track',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
           ],
         ),
       ),

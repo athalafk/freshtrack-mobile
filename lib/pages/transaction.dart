@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'home.dart';
-import 'login.dart';
-import 'history.dart';
-import 'registration.dart';
-import '../services/api_service.dart';
+import '../services/data_service.dart';
 import '../data/models/barang.dart';
+import '../data/models/user.dart';
+import 'common/appbar.dart';
+import 'common/drawer.dart';
 
 class TransactionsPage extends StatefulWidget {
   final String? username;
-  TransactionsPage({this.username});
+  const TransactionsPage({this.username, Key? key}) : super(key: key);
 
   @override
   _TransactionsPageState createState() => _TransactionsPageState();
@@ -16,11 +15,39 @@ class TransactionsPage extends StatefulWidget {
 
 class _TransactionsPageState extends State<TransactionsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  User? currentUser;
+  List<Barang> barangList = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      setState(() => isLoading = true);
+
+      final data = await DataService.fetchData(
+        fetchBarang: true,
+        fetchBatch: false,
+        fetchUser: true,
+      );
+
+      setState(() {
+        barangList = data['barang'] as List<Barang>;
+        currentUser = data['user'] as User;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error _loadData: $e');
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memuat data: ${e.toString()}')),
+      );
+    }
   }
 
   @override
@@ -29,177 +56,84 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
     super.dispose();
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Konfirmasi Logout'),
-        content: Text('Apakah Anda yakin ingin logout?'),
-        actions: [
-          TextButton(
-            child: Text('Batal'),
-            onPressed: () => Navigator.pop(context),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: CommonAppBar(
+        title: 'Transaksi',
+        currentUser: currentUser,
+        isLoading: isLoading,
+      ),
+      drawer: const CommonDrawer(),
+      body: Column(
+        children: [
+          Container(
+            color: const Color(0xFF4796BD),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              indicatorColor: Colors.orange,
+              indicatorWeight: 3,
+              tabs: const [
+                Tab(text: 'Masuk'),
+                Tab(text: 'Keluar'),
+              ],
+            ),
           ),
-          TextButton(
-            child: Text('Logout', style: TextStyle(color: Colors.red)),
-            onPressed: () async {
-              Navigator.pop(context);
-              await _performLogout(context);
-            },
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTabContent('Barang Masuk'),
+                _buildTabContent('Barang Keluar'),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Transaksi', style: TextStyle(color: Colors.white)),
-        backgroundColor: Color(0xFF4796BD),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.account_circle_outlined, color: Colors.white, size: 30),
-            onPressed: () {
-              showMenu(
-                context: context,
-                position: RelativeRect.fromLTRB(50, 70, 0, 0),
-                items: [
-                  PopupMenuItem(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(widget.username ?? 'Pengguna', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Divider(),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Logout'),
-                      ],
-                    ),
-                    onTap: () => _showLogoutDialog(context),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(child: Text('Masuk', style: TextStyle(color: Colors.white))),
-            Tab(child: Text('Keluar', style: TextStyle(color: Colors.white))),
-          ],
-        ),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Color(0xFF4796BD)),
-              child: Text(
-                "Menu",
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.inventory),
-              title: Text("Inventori"),
-              onTap: (){
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => HomePage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.assignment_outlined),
-              title: Text("Daftar Barang"),
-              onTap: (){
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => RegistrationPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.assignment_outlined),
-              title: Text("Transaksi"),
-              onTap: (){
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => TransactionsPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.history),
-              title: Text("Riwayat"),
-              onTap: (){
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => HistoryPage()),
-                );
-              },
-            )
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
+  Widget _buildTabContent(String title) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          TransactionForm(title: 'Barang Masuk'),
-          TransactionForm(title: 'Barang Keluar'),
+          TransactionForm(title: title, barangList: barangList),
         ],
       ),
     );
   }
 }
+
 class TransactionForm extends StatefulWidget {
   final String title;
-  TransactionForm({required this.title});
+  final List<Barang> barangList;
+
+  const TransactionForm({required this.title, required this.barangList, Key? key}) : super(key: key);
 
   @override
   _TransactionFormState createState() => _TransactionFormState();
 }
 
 class _TransactionFormState extends State<TransactionForm> {
-  List<Barang> barangList = [];
-  bool isLoading = true;
-
   DateTime? _selectedDate;
   final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _stokController = TextEditingController();
+  final TextEditingController _namaBarangController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _fetchBarang();
-  }
-
-  Future<void> _fetchBarang() async {
-    try {
-      List<Barang> barangData = await ApiService().getBarang();
-      setState(() {
-        barangList = barangData;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat data barang: $e')),
-      );
-    }
+  void dispose() {
+    _dateController.dispose();
+    _stokController.dispose();
+    _namaBarangController.dispose();
+    super.dispose();
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -218,120 +152,85 @@ class _TransactionFormState extends State<TransactionForm> {
   }
 
   @override
-  void dispose() {
-    _dateController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return Center(child: CircularProgressIndicator());
-    }
-
-    return Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            widget.title,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          Divider(),
-          SizedBox(height: 16),
-          Autocomplete<String>(
-            optionsBuilder: (TextEditingValue textEditingValue) {
-              if (textEditingValue.text.isEmpty) {
-                return const Iterable<String>.empty();
-              }
-              return barangList
-                  .map((barang) => barang.namaBarang ?? '') // <- pakai field yg benar dari model
-                  .where((nama) => (nama ?? '').toLowerCase().contains(textEditingValue.text.toLowerCase()));
-            },
-            onSelected: (String selection) {
-              // nanti implementasi pilihan di sini
-            },
-            fieldViewBuilder: (BuildContext context, TextEditingController textEditingController, FocusNode focusNode, VoidCallback onFieldSubmitted) {
-              return TextField(
-                controller: textEditingController,
-                focusNode: focusNode,
-                decoration: InputDecoration(
-                  labelText: 'Nama Barang',
-                  filled: true,
-                  fillColor: Colors.grey.shade200,
-                  border: InputBorder.none,
-                ),
-              );
-            },
-          ),
-          SizedBox(height: 16),
-          TextField(
-            decoration: InputDecoration(
-              labelText: 'Stok',
-              filled: true,
-              fillColor: Colors.grey.shade200,
-              border: InputBorder.none,
-            ),
-            keyboardType: TextInputType.number,
-          ),
-          if (widget.title == 'Barang Masuk') ...[
-            SizedBox(height: 16),
-            TextField(
-              controller: _dateController,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.title,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const Divider(),
+        const SizedBox(height: 16),
+        Autocomplete<String>(
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            if (textEditingValue.text.isEmpty) {
+              return const Iterable<String>.empty();
+            }
+            return widget.barangList
+                .map((barang) => barang.namaBarang ?? '')
+                .where((nama) => nama.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+          },
+          onSelected: (String selection) {
+            _namaBarangController.text = selection;
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
               decoration: InputDecoration(
-                labelText: 'Tanggal Expired',
+                labelText: 'Nama Barang',
                 filled: true,
                 fillColor: Colors.grey.shade200,
                 border: InputBorder.none,
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.calendar_today),
-                  onPressed: () => _selectDate(context),
-                ),
               ),
-              readOnly: true,
-              onTap: () => _selectDate(context),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _stokController,
+          decoration: InputDecoration(
+            labelText: 'Stok',
+            filled: true,
+            fillColor: Colors.grey.shade200,
+            border: InputBorder.none,
+          ),
+          keyboardType: TextInputType.number,
+        ),
+        if (widget.title == 'Barang Masuk') ...[
+          const SizedBox(height: 16),
+          TextField(
+            controller: _dateController,
+            decoration: InputDecoration(
+              labelText: 'Tanggal Expired',
+              filled: true,
+              fillColor: Colors.grey.shade200,
+              border: InputBorder.none,
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.calendar_today),
+                onPressed: () => _selectDate(context),
+              ),
             ),
-          ],
-          SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () {
-              // nanti implementasi simpan di sini
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              minimumSize: Size(double.infinity, 50),
-            ),
-            child: Text(
-              'Simpan',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
+            readOnly: true,
+            onTap: () => _selectDate(context),
           ),
         ],
-      ),
+        const SizedBox(height: 24),
+        ElevatedButton(
+          onPressed: () {
+            // Implementasi tombol simpan
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            minimumSize: const Size(double.infinity, 50),
+          ),
+          child: const Text(
+            'Simpan',
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
+        ),
+      ],
     );
-  }
-}
-
-
-Future<void> _performLogout(BuildContext context) async {
-  try {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(child: CircularProgressIndicator()),
-    );
-
-    await ApiService().logout();
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginPage()),
-    );
-  } catch (e) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal logout: ${e.toString()}')),
-        );
   }
 }

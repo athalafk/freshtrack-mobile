@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'login.dart';
+import '../services/data_service.dart';
 import '../data/models/barang.dart';
 import '../data/models/batch_barang.dart';
 import '../data/sources/barang_data_source.dart';
 import '../data/sources/batch_data_source.dart';
-import 'transaction.dart';
-import 'history.dart';
-import 'registration.dart';
+import '../data/models/user.dart';
+import 'common/appbar.dart';
+import 'common/drawer.dart';
 
 class HomePage extends StatefulWidget {
-  final String? username;
-
-  const HomePage({Key? key, this.username}) : super(key: key);
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -23,12 +21,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   bool isLoading = true;
   List<Barang> daftarBarang = [];
   List<BatchBarang> batchBarang = [];
+  User? currentUser;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _fetchData();
+    _loadData();
   }
 
   @override
@@ -37,71 +36,24 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Konfirmasi Logout'),
-        content: Text('Apakah Anda yakin ingin logout?'),
-        actions: [
-          TextButton(
-            child: Text('Batal'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          TextButton(
-            child: Text('Logout', style: TextStyle(color: Colors.red)),
-            onPressed: () async {
-              Navigator.pop(context);
-              await Future.delayed(Duration(milliseconds: 100));
-              await _performLogout(context);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _performLogout(BuildContext context) async {
-    final navigator = Navigator.of(context);
-    final scaffold = ScaffoldMessenger.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(child: CircularProgressIndicator()),
-    );
-    try {
-      await ApiService().logout();
-
-      navigator.pushReplacement(
-        MaterialPageRoute(builder: (context) => LoginPage()),
-      );
-    } catch (e) {
-      navigator.pop();
-      scaffold.showSnackBar(
-        SnackBar(content: Text('Gagal logout: ${e.toString()}')),
-      );
-    }
-  }
-
-  Future<void> _fetchData() async {
+  Future<void> _loadData() async {
     try {
       setState(() => isLoading = true);
 
-      print('Mengambil data barang...');
-      List<Barang> barangData = await ApiService().getBarang();
-      print('Jumlah barang: ${barangData.length}');
-
-      print('Mengambil data batch...');
-      List<BatchBarang> batchData = await ApiService().getBatchBarang();
-      print('Jumlah batch: ${batchData.length}');
+      final data = await DataService.fetchData(
+        fetchBarang: true,
+        fetchBatch: true,
+        fetchUser: true,
+      );
 
       setState(() {
-        daftarBarang = barangData;
-        batchBarang = batchData;
+        daftarBarang = data['barang'] as List<Barang>;
+        batchBarang = data['batch'] as List<BatchBarang>;
+        currentUser = data['user'] as User;
         isLoading = false;
       });
     } catch (e) {
-      print('Error _fetchData: $e');
+      print('Error _loadData: $e');
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal memuat data: ${e.toString()}')),
@@ -109,120 +61,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
-  int getRemainingDays(String expiredDate) {
-    try {
-      DateTime expiryDate = DateTime.parse(expiredDate);
-      DateTime today = DateTime.now();
-      return expiryDate.difference(today).inDays;
-    } catch (e) {
-      return -1;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Inventori', style: TextStyle(color: Colors.white)),
-        backgroundColor: Color(0xFF4796BD),
-        actions: [
-          IconButton(
-            icon: Stack(
-              children: [
-                Icon(Icons.account_circle_outlined, color: Colors.white, size: 30),
-              ],
-            ),
-            onPressed: () {
-              showMenu(
-                context: context,
-                position: RelativeRect.fromLTRB(50, 70, 0, 0),
-                items: [
-                  PopupMenuItem(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.username ?? 'Pengguna',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Divider(),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Logout'),
-                      ],
-                    ),
-                    onTap: () => _showLogoutDialog(context),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
+      appBar: CommonAppBar(
+        title: 'Inventori',
+        currentUser: currentUser,
+        isLoading: isLoading,
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Color(0xFF4796BD)),
-              child: Text(
-                "Menu",
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.inventory),
-              title: Text("Inventori"),
-              onTap: (){
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => HomePage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.assignment_outlined),
-              title: Text("Daftar Barang"),
-              onTap: (){
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => RegistrationPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.assignment_outlined),
-              title: Text("Transaksi"),
-              onTap: (){
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => TransactionsPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.history),
-              title: Text("Riwayat"),
-              onTap: (){
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => HistoryPage()),
-                );
-              },
-            )
-          ],
-        ),
-      ),
+      drawer: const CommonDrawer(),
 
       body: Column(
         children: [
@@ -274,7 +121,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 isLoading
                     ? Center(child: CircularProgressIndicator())
                     : RefreshIndicator(
-                  onRefresh: _fetchData,
+                  onRefresh: _loadData,
                   child: _buildInventoryList(daftarBarang),
                 ),
 
@@ -282,7 +129,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 isLoading
                     ? Center(child: CircularProgressIndicator())
                     : RefreshIndicator(
-                  onRefresh: _fetchData,
+                  onRefresh: _loadData,
                   child: _buildExpiryStatusList(),
                 ),
               ],
@@ -298,16 +145,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       child: PaginatedDataTable(
         header: Text('Daftar Barang', style: TextStyle(fontWeight: FontWeight.bold)),
         rowsPerPage: _calculateRowsPerPage(),
-        columns: const [
+        columns: [
           DataColumn(label: Text('Barang')),
           DataColumn(label: Text('Stok'), numeric: true),
           DataColumn(label: Text('Satuan')),
-          DataColumn(label: Text('Aksi')),
+          if (currentUser?.role == 'admin')
+            const DataColumn(label: Text('Aksi')),
         ],
         source: BarangDataSource(
           data: items,
           onEdit: (item) => _showEditDialog(context, item),
           onDelete: (item) => _showDeleteDialog(context, item),
+          userRole: currentUser?.role ?? '',
         ),
       ),
     );

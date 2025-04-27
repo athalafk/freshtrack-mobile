@@ -6,7 +6,7 @@ import '../data/models/barang.dart';
 import '../data/models/batch_barang.dart';
 
 class ApiService {
-  final String _baseUrl = ('http://127.0.0.1:8000');
+  final String _baseUrl = ('https://freshtrack.azurewebsites.net');
 
   Future<User?> login(String username, String password) async {
     try {
@@ -170,18 +170,14 @@ class ApiService {
     }
   }
 
-  Future<User?> getCurrentUser() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final userJson = prefs.getString('user');
+  Future<User> getCurrentUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString('user');
 
-      if (userJson != null) {
-        return User.fromJson(jsonDecode(userJson));
-      }
-      return null;
-    } catch (e) {
-      print('Error getting current user: $e');
-      return null;
+    if (userJson != null) {
+      return User.fromJson(jsonDecode(userJson));
+    } else {
+      throw Exception('User not found');
     }
   }
 }

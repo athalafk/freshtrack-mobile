@@ -80,7 +80,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         currentUser: currentUser,
         isLoading: isLoading,
       ),
-      drawer: const CommonDrawer(),
+      drawer: CommonDrawer(role: currentUser?.role ?? ''),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),

@@ -101,7 +101,7 @@ class _HistoryPageState extends State<HistoryPage> {
         currentUser: currentUser,
         isLoading: isLoading,
       ),
-      drawer: const CommonDrawer(),
+      drawer: CommonDrawer(role: currentUser?.role ?? ''),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(

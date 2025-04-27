@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         currentUser: currentUser,
         isLoading: isLoading,
       ),
-      drawer: const CommonDrawer(),
+      drawer: CommonDrawer(role: currentUser?.role ?? ''),
 
       body: Column(
         children: [

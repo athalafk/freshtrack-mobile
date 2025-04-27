@@ -5,7 +5,9 @@ import '../transaction.dart';
 import '../history.dart';
 
 class CommonDrawer extends StatelessWidget {
-  const CommonDrawer({Key? key}) : super(key: key);
+  final String role;
+
+  const CommonDrawer({Key? key, required this.role}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -26,24 +28,26 @@ class CommonDrawer extends StatelessWidget {
             title: "Inventori",
             page: HomePage(),
           ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.assignment_outlined,
-            title: "Daftar Barang",
-            page: RegistrationPage(),
-          ),
+          if (role == 'admin')
+            _buildDrawerItem(
+              context,
+              icon: Icons.assignment_outlined,
+              title: "Daftar Barang",
+              page: RegistrationPage(),
+            ),
           _buildDrawerItem(
             context,
             icon: Icons.assignment_outlined,
             title: "Transaksi",
             page: TransactionsPage(),
           ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.history,
-            title: "Riwayat",
-            page: HistoryPage(),
-          ),
+          if (role == 'admin')
+            _buildDrawerItem(
+              context,
+              icon: Icons.history,
+              title: "Riwayat",
+              page: HistoryPage(),
+            ),
         ],
       ),
     );

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'home.dart';
 import 'login.dart';
 import 'history.dart';
+import 'registration.dart';
 import '../services/api_service.dart';
+import '../data/models/barang.dart';
 
 class TransactionsPage extends StatefulWidget {
   final String? username;
@@ -102,32 +104,55 @@ class _TransactionsPageState extends State<TransactionsPage> with SingleTickerPr
           children: [
             DrawerHeader(
               decoration: BoxDecoration(color: Color(0xFF4796BD)),
-              child: Text("Menu", style: TextStyle(color: Colors.white, fontSize: 24)),
+              child: Text(
+                "Menu",
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
             ),
             ListTile(
               leading: Icon(Icons.inventory),
               title: Text("Inventori"),
-              onTap: () {
+              onTap: (){
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage(username: widget.username)));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomePage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.assignment_outlined),
+              title: Text("Daftar Barang"),
+              onTap: (){
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => RegistrationPage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.assignment_outlined),
               title: Text("Transaksi"),
-              onTap: () {
+              onTap: (){
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => TransactionsPage(username: widget.username)));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TransactionsPage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.history),
               title: Text("Riwayat"),
-              onTap: () {
+              onTap: (){
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => HistoryPage(username: widget.username)));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HistoryPage()),
+                );
               },
-            ),
+            )
           ],
         ),
       ),
@@ -150,18 +175,32 @@ class TransactionForm extends StatefulWidget {
 }
 
 class _TransactionFormState extends State<TransactionForm> {
-  final List<String> barangList = [
-    'Beras',
-    'Gula',
-    'Minyak Goreng',
-    'Tepung Terigu',
-    'Kecap',
-    'Garam',
-    'Minyak Sawit'
-  ];
+  List<Barang> barangList = [];
+  bool isLoading = true;
 
   DateTime? _selectedDate;
   final TextEditingController _dateController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBarang();
+  }
+
+  Future<void> _fetchBarang() async {
+    try {
+      List<Barang> barangData = await ApiService().getBarang();
+      setState(() {
+        barangList = barangData;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memuat data barang: $e')),
+      );
+    }
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -186,6 +225,10 @@ class _TransactionFormState extends State<TransactionForm> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
     return Padding(
       padding: EdgeInsets.all(16.0),
       child: Column(
@@ -202,9 +245,9 @@ class _TransactionFormState extends State<TransactionForm> {
               if (textEditingValue.text.isEmpty) {
                 return const Iterable<String>.empty();
               }
-              return barangList.where((String barang) {
-                return barang.toLowerCase().contains(textEditingValue.text.toLowerCase());
-              });
+              return barangList
+                  .map((barang) => barang.namaBarang ?? '') // <- pakai field yg benar dari model
+                  .where((nama) => (nama ?? '').toLowerCase().contains(textEditingValue.text.toLowerCase()));
             },
             onSelected: (String selection) {
               // nanti implementasi pilihan di sini
@@ -288,7 +331,7 @@ Future<void> _performLogout(BuildContext context) async {
   } catch (e) {
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gagal logout: ${e.toString()}')),
-    );
+        SnackBar(content: Text('Gagal logout: ${e.toString()}')),
+        );
   }
 }

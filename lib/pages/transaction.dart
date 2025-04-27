@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
 import 'login.dart';
+import 'history.dart';
 import '../services/api_service.dart';
 
 class TransactionsPage extends StatefulWidget {

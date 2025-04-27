@@ -1,23 +1,33 @@
 import 'dart:convert';
-import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/user.dart';
 import '../data/models/barang.dart';
 import '../data/models/batch_barang.dart';
 
 class ApiService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://freshtrack.azurewebsites.net'));
+  final String _baseUrl = ('https://freshtrack.azurewebsites.net');
 
   Future<User?> login(String username, String password) async {
     try {
-      final response = await _dio.post('/api/auth/login', data: {
-        'username': username,
-        'password': password,
-      });
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+        }),
+      );
 
-      final userData = response.data['user'];
-      final token = response.data['access_token'];
-      final token_type = response.data['token_type'];
+      if (response.statusCode != 200) {
+        print('Login failed: ${response.body}');
+        return null;
+      }
+
+      final data = jsonDecode(response.body);
+      final userData = data['user'];
+      final token = data['access_token'];
+      final tokenType = data['token_type'];
 
       if (userData == null || token == null) {
         throw Exception('Invalid response format');
@@ -25,15 +35,11 @@ class ApiService {
 
       final user = User.fromJson(userData);
 
-      // Simpan ke SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', '$token_type $token');
+      await prefs.setString('token', '$tokenType $token');
       await prefs.setString('user', jsonEncode(user.toJson()));
 
       return user;
-    } on DioException catch (e) {
-      print('Login error: ${e.response?.data ?? e.message}');
-      return null;
     } catch (e) {
       print('Unexpected login error: $e');
       return null;
@@ -42,9 +48,10 @@ class ApiService {
 
   Future<bool> logout() async {
     try {
-      final response = await _dio.post(
-        '/api/auth/logout',
-        options: Options(headers: await _getHeaders()),
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/auth/logout'),
+        headers: headers,
       );
 
       final prefs = await SharedPreferences.getInstance();
@@ -52,9 +59,6 @@ class ApiService {
       await prefs.remove('user');
 
       return response.statusCode == 200;
-    } on DioException catch (e) {
-      print('Logout error: ${e.response?.data ?? e.message}');
-      return false;
     } catch (e) {
       print('Unexpected logout error: $e');
       return false;
@@ -63,40 +67,52 @@ class ApiService {
 
   Future<List<Barang>> getBarang() async {
     try {
-      final response = await _dio.get(
-        '/api/barang',
-        options: Options(headers: await _getHeaders()),
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/barang'),
+        headers: headers,
       );
 
-      if (response.data is! List) {
+      if (response.statusCode != 200) {
+        print('Error getBarang: ${response.body}');
+        return [];
+      }
+
+      final data = jsonDecode(response.body);
+
+      if (data is! List) {
         throw Exception('Invalid response format');
       }
 
-      return (response.data as List)
-          .map((item) => Barang.fromJson(item))
-          .toList();
-    } on DioException catch (e) {
-      print('Error getBarang: ${e.response?.data ?? e.message}');
+      return data.map<Barang>((item) => Barang.fromJson(item)).toList();
+    } catch (e) {
+      print('Error getBarang: $e');
       return [];
     }
   }
 
   Future<List<BatchBarang>> getBatchBarang() async {
     try {
-      final response = await _dio.get(
-        '/api/barang/batch-barang',
-        options: Options(headers: await _getHeaders()),
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/barang/batch-barang'),
+        headers: headers,
       );
 
-      if (response.data is! List) {
+      if (response.statusCode != 200) {
+        print('Error getBatchBarang: ${response.body}');
+        return [];
+      }
+
+      final data = jsonDecode(response.body);
+
+      if (data is! List) {
         throw Exception('Invalid response format');
       }
 
-      return (response.data as List)
-          .map((item) => BatchBarang.fromJson(item))
-          .toList();
-    } on DioException catch (e) {
-      print('Error getBatchBarang: ${e.response?.data ?? e.message}');
+      return data.map<BatchBarang>((item) => BatchBarang.fromJson(item)).toList();
+    } catch (e) {
+      print('Error getBatchBarang: $e');
       return [];
     }
   }
@@ -122,32 +138,34 @@ class ApiService {
 
   Future<bool> updateBarang(int id, String namaBarang, String satuan) async {
     try {
-      final response = await _dio.put(
-        '/api/barang/update/$id',
-        options: Options(headers: await _getHeaders()),
-        data: {
+      final headers = await _getHeaders();
+      final response = await http.put(
+        Uri.parse('$_baseUrl/api/barang/update/$id'),
+        headers: headers,
+        body: jsonEncode({
           'nama_barang': namaBarang,
           'satuan': satuan,
-        },
+        }),
       );
 
       return response.statusCode == 200;
-    } on DioException catch (e) {
-      print('Error updateBarang: ${e.response?.data ?? e.message}');
+    } catch (e) {
+      print('Error updateBarang: $e');
       return false;
     }
   }
 
   Future<bool> deleteBarang(int id) async {
     try {
-      final response = await _dio.delete(
-        '/api/barang/$id',
-        options: Options(headers: await _getHeaders()),
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('$_baseUrl/api/barang/$id'),
+        headers: headers,
       );
 
       return response.statusCode == 200;
-    } on DioException catch (e) {
-      print('Error deleteBarang: ${e.response?.data ?? e.message}');
+    } catch (e) {
+      print('Error deleteBarang: $e');
       return false;
     }
   }

@@ -3,6 +3,7 @@ import '../models/barang.dart';
 
 class BarangDataSource extends DataTableSource {
   final List<Barang> data;
+  final String userRole;
   final void Function(Barang) onEdit;
   final void Function(Barang) onDelete;
 
@@ -10,6 +11,7 @@ class BarangDataSource extends DataTableSource {
     required this.data,
     required this.onEdit,
     required this.onDelete,
+    required this.userRole,
   });
 
   @override
@@ -21,19 +23,20 @@ class BarangDataSource extends DataTableSource {
         DataCell(Text(item.namaBarang)),
         DataCell(Text(item.totalStok.toString())),
         DataCell(Text(item.satuan)),
-        DataCell(Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
-              onPressed: () => onEdit(item),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-              onPressed: () => onDelete(item),
-            ),
-          ],
-        )),
+        if (userRole == 'admin')
+          DataCell(Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                onPressed: () => onEdit(item),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                onPressed: () => onDelete(item),
+              ),
+            ],
+          )),
       ],
     );
   }

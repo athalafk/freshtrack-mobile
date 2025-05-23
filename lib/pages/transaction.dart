@@ -4,6 +4,7 @@ import '../data/models/barang.dart';
 import '../data/models/user.dart';
 import 'common/appbar.dart';
 import 'common/drawer.dart';
+import '../services/api_service.dart';
 
 class TransactionsPage extends StatefulWidget {
   final String? username;
@@ -151,6 +152,56 @@ class _TransactionFormState extends State<TransactionForm> {
     }
   }
 
+  Future<void> submitForm() async {
+    final namaBarang = _namaBarangController.text;
+    final stok = int.tryParse(_stokController.text) ?? 0;
+    final tanggalKadaluarsa = _selectedDate;
+
+    if (namaBarang.isEmpty || stok <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama barang dan stok wajib diisi (Nama Barang harus hasil autocomplete!)')),
+      );
+      return;
+    }
+
+    if (widget.title == 'Barang Masuk') {
+      if (tanggalKadaluarsa == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tanggal kadaluarsa wajib diisi')),
+        );
+        return;
+      }
+
+      final formattedDate =
+          "${tanggalKadaluarsa.year}-${tanggalKadaluarsa.month.toString().padLeft(2, '0')}-${tanggalKadaluarsa.day.toString().padLeft(2, '0')}";
+
+      final success = await ApiService().barangMasuk(
+        namaBarang: namaBarang,
+        stok: stok,
+        tanggalKadaluarsa: formattedDate,
+      );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Barang masuk berhasil ditambahkan')),
+        );
+        _stokController.clear();
+        _dateController.clear();
+        _namaBarangController.clear();
+        setState(() => _selectedDate = null);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menambahkan barang masuk')),
+        );
+      }
+    } else {
+      // Barang Keluar - bisa diimplementasikan nanti
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Fitur barang keluar belum diimplementasikan')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -217,19 +268,17 @@ class _TransactionFormState extends State<TransactionForm> {
           ),
         ],
         const SizedBox(height: 24),
-        ElevatedButton(
-          onPressed: () {
-            // Implementasi tombol simpan
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            minimumSize: const Size(double.infinity, 50),
-          ),
-          child: const Text(
-            'Simpan',
-            style: TextStyle(color: Colors.white, fontSize: 16),
-          ),
-        ),
+    ElevatedButton(
+    onPressed: submitForm,
+    style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.blue,
+    minimumSize: const Size(double.infinity, 50),
+    ),
+    child: const Text(
+    'Simpan',
+    style: TextStyle(color: Colors.white, fontSize: 16),
+    ),
+    ),
       ],
     );
   }

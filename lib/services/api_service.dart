@@ -6,7 +6,7 @@ import '../data/models/barang.dart';
 import '../data/models/batch_barang.dart';
 
 class ApiService {
-  final String _baseUrl = ('https://freshtrack.azurewebsites.net');
+  final String _baseUrl = ('http://localhost:8000');
 
   Future<User?> login(String username, String password) async {
     try {
@@ -180,4 +180,29 @@ class ApiService {
       throw Exception('User not found');
     }
   }
+
+  Future<bool> barangMasuk({
+    required String namaBarang,
+    required int stok,
+    required String tanggalKadaluarsa,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/barang/masuk'),
+        headers: headers,
+        body: jsonEncode({
+          'nama_barang': namaBarang,
+          'stok': stok,
+          'tanggal_kadaluarsa': tanggalKadaluarsa,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error barangMasuk: $e');
+      return false;
+    }
+  }
+
 }

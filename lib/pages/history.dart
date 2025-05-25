@@ -27,7 +27,7 @@ class _HistoryPageState extends State<HistoryPage> {
   void initState() {
     super.initState();
     _fetchTransactionData();
-    _fetchUserData(); // Add this if you need user data
+    _fetchUserData();
   }
 
   void _generatePdf(BuildContext context) async {
@@ -66,7 +66,6 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Future<void> _fetchUserData() async {
     try {
-      // Add your user fetching logic here
       ApiService apiService = ApiService();
       User userData = await apiService.getCurrentUser();
       setState(() {
@@ -254,7 +253,7 @@ class _HistoryPageState extends State<HistoryPage> {
                         DataCell(Text(
                           transaction.stock,
                           style: TextStyle(
-                            color: transaction.type == 'keluar' ? Colors.red : null,
+                            color: transaction.type == 'keluar' || transaction.type == 'hapus' ? Colors.red : null,
                           ),
                         )),
                         DataCell(Text(transaction.actor)),

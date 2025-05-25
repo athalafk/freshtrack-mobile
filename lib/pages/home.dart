@@ -538,7 +538,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: selectedUnit,
-                    items: ['kilogram', 'liter', 'pcs', 'pack', 'unit', 'gram', 'mililiter'].map((unit) {
+                    items: ['kg', 'liter', 'pcs', 'pack', 'unit', 'gram', 'ml'].map((unit) {
                       return DropdownMenuItem(
                         value: unit,
                         child: Text(unit),

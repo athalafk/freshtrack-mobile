@@ -3,6 +3,7 @@ import 'common/appbar.dart';
 import 'common/drawer.dart';
 import '../services/data_service.dart';
 import '../data/models/user.dart';
+import '../services/api_service.dart';
 
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({Key? key}) : super(key: key);
@@ -14,6 +15,8 @@ class RegistrationPage extends StatefulWidget {
 class _RegistrationPageState extends State<RegistrationPage> {
   bool isLoading = true;
   User? currentUser;
+  final List<String> satuanList = ['kg', 'liter', 'pcs', 'pack', 'unit', 'gram', 'ml'];
+  String? selectedSatuan;
   final TextEditingController namaBarangController = TextEditingController();
   final TextEditingController satuanController = TextEditingController();
 
@@ -53,23 +56,39 @@ class _RegistrationPageState extends State<RegistrationPage> {
     }
   }
 
-  void _saveBarang() {
+  void _saveBarang() async {
     final namaBarang = namaBarangController.text.trim();
-    final satuan = satuanController.text.trim();
+    final satuan = selectedSatuan ?? '';
 
-    if (namaBarang.isEmpty || satuan.isEmpty) {
+    if (namaBarang.isEmpty || selectedSatuan==null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Harap isi semua field')),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Barang "$namaBarang" dengan satuan "$satuan" disimpan.')),
+    setState(() => isLoading = true);
+
+    bool success = await ApiService().createBarang(
+      namaBarang: namaBarang,
+      satuan: selectedSatuan!,
     );
 
-    namaBarangController.clear();
-    satuanController.clear();
+    setState(() => isLoading = false);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Barang "$namaBarang" berhasil disimpan.')),
+      );
+      namaBarangController.clear();
+      setState(() {
+        selectedSatuan = null;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan barang.')),
+      );
+    }
   }
 
   @override
@@ -112,10 +131,21 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 ),
               ),
               SizedBox(height: 24),
-              TextField(
-                controller: satuanController,
+              DropdownButtonFormField<String>(
+                value: selectedSatuan,
+                onChanged: (value) {
+                  setState(() {
+                    selectedSatuan = value;
+                  });
+                },
+                items: satuanList.map((unit) {
+                  return DropdownMenuItem(
+                    value: unit,
+                    child: Text(unit),
+                  );
+                }).toList(),
                 decoration: InputDecoration(
-                  hintText: 'Satuan',
+                  hintText: 'Pilih Satuan',
                   filled: true,
                   fillColor: Colors.grey[200],
                   contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),

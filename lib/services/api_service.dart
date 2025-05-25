@@ -7,7 +7,7 @@ import '../data/models/batch_barang.dart';
 import '../data/models/transaction_model.dart';
 
 class ApiService {
-  final String _baseUrl = ('http://localhost:8000');
+  final String _baseUrl = ('http://10.0.2.2:8000');
 
   Future<User?> login(String username, String password) async {
     try {
@@ -217,6 +217,28 @@ class ApiService {
       return jsonList.map((json) => TransactionModel.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load transactions');
+    }
+  }
+
+  Future<bool> createBarang({
+    required String namaBarang,
+    required String satuan,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/barang/create'),
+        headers: headers,
+        body: jsonEncode({
+          'nama_barang': namaBarang,
+          'satuan': satuan,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error createBarang: $e');
+      return false;
     }
   }
 }

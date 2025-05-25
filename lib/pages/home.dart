@@ -77,7 +77,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase(); // Ambil teks pencarian dalam huruf kecil
+    final query = _searchController.text.toLowerCase();
     setState(() {
       if (query.isEmpty) {
         filteredDaftarBarang = List.from(daftarBarang);
@@ -243,7 +243,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               setState(() {
                 _sortByBarang = 'nama_barang';
                 _sortAscendingBarang = ascending;
-                _applyFiltersAndSorts(); // Terapkan sorting
+                _applyFiltersAndSorts();
               });
             },
           ),
@@ -254,7 +254,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               setState(() {
                 _sortByBarang = 'total_stok';
                 _sortAscendingBarang = ascending;
-                _applyFiltersAndSorts(); // Terapkan sorting
+                _applyFiltersAndSorts();
               });
             },
           ),
@@ -538,7 +538,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: selectedUnit,
-                    items: ['kg', 'liter', 'pcs', 'pack', 'unit'].map((unit) {
+                    items: ['kilogram', 'liter', 'pcs', 'pack', 'unit', 'gram', 'mililiter'].map((unit) {
                       return DropdownMenuItem(
                         value: unit,
                         child: Text(unit),

@@ -205,8 +205,12 @@ class ApiService {
       return false;
     }
   }
-  static Future<List<TransactionModel>> fetchTransactions() async {
-    final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/transactions'));
+  Future<List<TransactionModel>> fetchTransactions() async {
+    final headers = await _getHeaders();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/transactions'),
+      headers: headers,
+    );
 
     if (response.statusCode == 200) {
       List<dynamic> jsonList = jsonDecode(response.body);

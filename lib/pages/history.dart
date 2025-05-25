@@ -79,7 +79,8 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Future<void> _fetchTransactionData() async {
     try {
-      List<TransactionModel> data = await ApiService.fetchTransactions();
+      final apiService = ApiService();
+      List<TransactionModel> data = await apiService.fetchTransactions();
       setState(() {
         _allTransactions = data;
         isLoading = false; 
@@ -247,7 +248,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   rows: _filteredTransactions.map((transaction) {
                     return DataRow(
                       cells: [
-                        DataCell(Text(transaction.date)),
+                        DataCell(Text(DateFormat('dd/MM/yyyy').format(DateTime.parse(transaction.date)))),
                         DataCell(Text(transaction.type)),
                         DataCell(Text(transaction.item)),
                         DataCell(Text(

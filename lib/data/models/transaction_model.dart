@@ -15,7 +15,7 @@ class TransactionModel {
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
     return TransactionModel(
-      date: json['date'],
+      date: json['created_at'],
       type: json['type'],
       item: json['item'],
       stock: json['stock'].toString(),

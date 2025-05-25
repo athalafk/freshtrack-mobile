@@ -45,7 +45,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 headers: ['Tanggal', 'Tipe', 'Barang', 'Stok', 'Pelaku'],
                 data: _filteredTransactions.map((tx) {
                   return [
-                    tx.date,
+                    DateFormat('dd/MM/yyyy').format(DateTime.parse(tx.date)),
                     tx.type,
                     tx.item,
                     tx.stock,

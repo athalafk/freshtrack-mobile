@@ -154,8 +154,32 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         ],
         source: BarangDataSource(
           data: items,
-          onEdit: (item) => _showEditDialog(context, item),
-          onDelete: (item) => _showDeleteDialog(context, item),
+          onEdit: (item) async {
+            final bool? updated = await _showEditDialog(context, item);
+            if (updated == true){
+              await _loadData();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Berhasil memperbarui barang")),
+              );
+            } else if (updated == false) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Gagal memperbarui barang")),
+              );
+            }
+          },
+          onDelete: (item) async {
+            final bool? confirmed = await _showDeleteDialog(context, item);
+            if (confirmed == true) {
+              await _loadData();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Berhasil menghapus barang")),
+              );
+            }else if (confirmed == false) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Gagal menghapus barang")),
+              );
+            }
+          },
           userRole: currentUser?.role ?? '',
         ),
       ),
@@ -190,109 +214,101 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     // Implement your sort dialog here
   }
 
-  void _showEditDialog(BuildContext context, Barang barang) {
+  Future<bool?> _showEditDialog(BuildContext context, Barang barang) {
     final namaController = TextEditingController(text: barang.namaBarang);
     String selectedUnit = barang.satuan;
+    String? namaErrorText;
 
-    showDialog(
+    return showDialog<bool?>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Edit ${barang.namaBarang}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: namaController,
-              decoration: InputDecoration(labelText: 'Nama Barang'),
-            ),
-            SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: selectedUnit,
-              items: ['kg', 'liter', 'pcs', 'pack', 'unit'].map((unit) {
-                return DropdownMenuItem(
-                  value: unit,
-                  child: Text(unit),
-                );
-              }).toList(),
-              onChanged: (value) => selectedUnit = value!,
-              decoration: InputDecoration(labelText: 'Satuan'),
-            ),
-            SizedBox(height: 16),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: Text('Batal'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          TextButton(
-            child: Text('Simpan'),
-            onPressed: () async {
-              bool success = await ApiService().updateBarang(
-                barang.id,
-                namaController.text,
-                selectedUnit,
-              );
-
-              if (success) {
-                setState(() {
-                  final updatedBarang = barang.copyWith(
-                    namaBarang: namaController.text,
-                    satuan: selectedUnit,
-                  );
-
-                  final barangIndex = daftarBarang.indexWhere((b) => b.id == barang.id);
-                  if (barangIndex != -1) {
-                    daftarBarang[barangIndex] = updatedBarang;
-                  }
-
-                  batchBarang = batchBarang.map((batch) {
-                    if (batch.barangId == barang.id) {
-                      return batch.copyWith(namaBarang: namaController.text);
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setStateInternal) {
+            return AlertDialog(
+              title: Text('Edit ${barang.namaBarang}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: namaController,
+                    decoration: InputDecoration(
+                      labelText: 'Nama Barang',
+                      errorText: namaErrorText,
+                    ),
+                    onChanged: (text) {
+                      if (namaErrorText != null && text.trim().isNotEmpty) {
+                        setStateInternal(() {
+                          namaErrorText = null;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedUnit,
+                    items: ['kg', 'liter', 'pcs', 'pack', 'unit'].map((unit) {
+                      return DropdownMenuItem(
+                        value: unit,
+                        child: Text(unit),
+                      );
+                    }).toList(),
+                    onChanged: (value) => selectedUnit = value!,
+                    decoration: const InputDecoration(labelText: 'Satuan'),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: const Text('Batal'),
+                  onPressed: () => Navigator.pop(dialogContext, false), // Mengembalikan false jika batal
+                ),
+                TextButton(
+                  child: const Text('Simpan'),
+                  onPressed: () async {
+                    if (namaController.text.trim().isEmpty) {
+                      setStateInternal(() {
+                        namaErrorText = "Nama Barang tidak boleh kosong!";
+                      });
+                      return;
                     }
-                    return batch;
-                  }).toList();
-                });
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Gagal memperbarui barang")),
-                );
-              }
-            },
-          ),
-        ],
-      ),
+
+                    setStateInternal(() {
+                      namaErrorText = null;
+                    });
+
+                    bool success = await ApiService().updateBarang(
+                      barang.id,
+                      namaController.text,
+                      selectedUnit,
+                    );
+                    Navigator.pop(dialogContext, success); // Mengembalikan hasil operasi API
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
-  void _showDeleteDialog(BuildContext context, Barang barang) {
-    showDialog(
+  Future<bool?> _showDeleteDialog(BuildContext context, Barang barang) {
+    return showDialog<bool?>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Hapus ${barang.namaBarang}?'),
-        content: Text('Apakah Anda yakin ingin menghapus barang ini?'),
+        content: const Text('Apakah Anda yakin ingin menghapus barang ini?'),
         actions: [
           TextButton(
-            child: Text('Batal'),
-            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+            onPressed: () => Navigator.pop(context, false),
           ),
           TextButton(
-            child: Text('Hapus'),
+            child: const Text('Hapus'),
             onPressed: () async {
               bool success = await ApiService().deleteBarang(barang.id);
-
-              if (success) {
-                setState(() {
-                  daftarBarang.removeWhere((b) => b.id == barang.id);
-                  batchBarang.removeWhere((batch) => batch.barangId == barang.id);
-                });
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Gagal menghapus barang")),
-                );
-              }
+              Navigator.pop(context, success);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
           ),

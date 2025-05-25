@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/user.dart';
 import '../data/models/barang.dart';
 import '../data/models/batch_barang.dart';
+import '../data/models/transaction_model.dart';
 
 class ApiService {
   final String _baseUrl = ('http://localhost:8000');
@@ -204,5 +205,14 @@ class ApiService {
       return false;
     }
   }
+  static Future<List<TransactionModel>> fetchTransactions() async {
+    final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/transactions'));
 
+    if (response.statusCode == 200) {
+      List<dynamic> jsonList = jsonDecode(response.body);
+      return jsonList.map((json) => TransactionModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load transactions');
+    }
+  }
 }

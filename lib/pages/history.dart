@@ -4,6 +4,11 @@ import 'common/appbar.dart';
 import 'common/drawer.dart';
 import '../services/data_service.dart';
 import '../data/models/user.dart';
+import '../data/models/transaction_model.dart';
+import '../services/api_service.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({Key? key}) : super(key: key);
@@ -16,62 +21,100 @@ class _HistoryPageState extends State<HistoryPage> {
   User? currentUser;
   DateTime? _startDate;
   DateTime? _endDate;
+  List<TransactionModel> _allTransactions = [];
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _fetchTransactionData();
+    _fetchUserData(); // Add this if you need user data
   }
 
-  Future<void> _loadData() async {
+  void _generatePdf(BuildContext context) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Riwayat Transaksi', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 16),
+              pw.Table.fromTextArray(
+                headers: ['Tanggal', 'Tipe', 'Barang', 'Stok', 'Pelaku'],
+                data: _filteredTransactions.map((tx) {
+                  return [
+                    tx.date,
+                    tx.type,
+                    tx.item,
+                    tx.stock,
+                    tx.actor,
+                  ];
+                }).toList(),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    // Langsung preview dan cetak
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+  }
+
+  Future<void> _fetchUserData() async {
     try {
-      setState(() => isLoading = true);
-
-      final data = await DataService.fetchData(
-        fetchBarang: false,
-        fetchBatch: false,
-        fetchUser: true,
-      );
-
+      // Add your user fetching logic here
+      ApiService apiService = ApiService();
+      User userData = await apiService.getCurrentUser();
       setState(() {
-        currentUser = data['user'] as User;
-        isLoading = false;
+        currentUser = userData;
       });
     } catch (e) {
-      print('Error _loadData: $e');
-      setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat data: ${e.toString()}')),
-      );
+      print("Gagal mengambil data user: $e");
     }
   }
 
-  List<Map<String, dynamic>> _allTransactions = [
-    {'date': '20 Dec 2024', 'type': 'Masuk', 'item': 'Beras', 'stock': '20', 'actor': 'admin'},
-    {'date': '25 Dec 2024', 'type': 'Keluar', 'item': 'Minyak Goreng', 'stock': '35', 'actor': 'helmi'},
-    {'date': '25 Dec 2024', 'type': 'Masuk', 'item': 'Gula', 'stock': '96', 'actor': 'athala'},
-    {'date': '25 Dec 2024', 'type': 'Keluar', 'item': 'Garam', 'stock': '52', 'actor': 'bayu'},
-    {'date': '30 Dec 2024', 'type': 'Masuk', 'item': 'Gula', 'stock': '180', 'actor': 'raihan'},
-  ];
+  Future<void> _fetchTransactionData() async {
+    try {
+      List<TransactionModel> data = await ApiService.fetchTransactions();
+      setState(() {
+        _allTransactions = data;
+        isLoading = false; 
+      });
+    } catch (e) {
+      print("Gagal mengambil data: $e");
+      setState(() {
+        isLoading = false; 
+      });
+    }
+  }
 
-  List<Map<String, dynamic>> get _filteredTransactions {
+  List<TransactionModel> get _filteredTransactions {
     if (_startDate == null && _endDate == null) return _allTransactions;
 
     return _allTransactions.where((transaction) {
-      final transactionDate = DateFormat('dd MMM yyyy').parse(transaction['date']);
+      try {
+        
+        final transactionDate = DateFormat('yyyy-MM-dd').parse(transaction.date);
 
-      if (_startDate != null && _endDate != null) {
-        return (transactionDate.isAfter(_startDate!) || transactionDate.isAtSameMomentAs(_startDate!)) &&
-            (transactionDate.isBefore(_endDate!) || transactionDate.isAtSameMomentAs(_endDate!));
-      } else if (_startDate != null) {
-        return transactionDate.isAfter(_startDate!) || transactionDate.isAtSameMomentAs(_startDate!);
-      } else if (_endDate != null) {
-        return transactionDate.isBefore(_endDate!) || transactionDate.isAtSameMomentAs(_endDate!);
+        if (_startDate != null && _endDate != null) {
+          return (transactionDate.isAfter(_startDate!) || transactionDate.isAtSameMomentAs(_startDate!)) &&
+              (transactionDate.isBefore(_endDate!) || transactionDate.isAtSameMomentAs(_endDate!));
+        } else if (_startDate != null) {
+          return transactionDate.isAfter(_startDate!) || transactionDate.isAtSameMomentAs(_startDate!);
+        } else if (_endDate != null) {
+          return transactionDate.isBefore(_endDate!) || transactionDate.isAtSameMomentAs(_endDate!);
+        }
+        return true;
+      } catch (e) {
+        print("Error parsing date: ${transaction.date}, error: $e");
+        return false; // Skip transactions with invalid dates
       }
-      return true;
     }).toList();
   }
-
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
     final DateTime? picked = await showDatePicker(
@@ -90,8 +133,6 @@ class _HistoryPageState extends State<HistoryPage> {
       });
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -113,9 +154,10 @@ class _HistoryPageState extends State<HistoryPage> {
               children: [
                 // Tombol Cetak PDF
                 Padding(
-                  padding: const EdgeInsets.only(top: 40.0), // Tambahin top padding buat nurunin tombol
+                  padding: const EdgeInsets.only(top: 40.0),
                   child: ElevatedButton(
                     onPressed: () {
+                      _generatePdf(context);
                       // Cetak PDF functionality
                     },
                     style: ElevatedButton.styleFrom(
@@ -126,7 +168,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   ),
                 ),
 
-                SizedBox(width: 16), // Jarak tombol ke fitur Rentang Riwayat
+                SizedBox(width: 16),
 
                 // Rentang Riwayat
                 Expanded(
@@ -152,7 +194,7 @@ class _HistoryPageState extends State<HistoryPage> {
                             ),
                             Text(
                               _startDate != null
-                                  ? DateFormat('dd MMM yyyy').format(_startDate!)
+                                  ? DateFormat('yyyy-MM-dd').format(_startDate!)
                                   : 'Pilih Tanggal',
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                             ),
@@ -171,7 +213,7 @@ class _HistoryPageState extends State<HistoryPage> {
                             ),
                             Text(
                               _endDate != null
-                                  ? DateFormat('dd MMM yyyy').format(_endDate!)
+                                  ? DateFormat('yyyy-MM-dd').format(_endDate!)
                                   : 'Pilih Tanggal',
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                             ),
@@ -184,12 +226,15 @@ class _HistoryPageState extends State<HistoryPage> {
               ],
             ),
 
-
             SizedBox(height: 24),
 
             // Data Table
             Expanded(
-              child: SingleChildScrollView(
+              child: isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : _filteredTransactions.isEmpty
+                  ? Center(child: Text("Tidak ada data transaksi"))
+                  : SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   columns: [
@@ -202,18 +247,16 @@ class _HistoryPageState extends State<HistoryPage> {
                   rows: _filteredTransactions.map((transaction) {
                     return DataRow(
                       cells: [
-                        DataCell(Text(transaction['date'])),
-                        DataCell(Text(transaction['type'])),
-                        DataCell(Text(transaction['item'])),
-                        DataCell(
-                          Text(
-                            transaction['stock'],
-                            style: TextStyle(
-                              color: transaction['type'] == 'Keluar' ? Colors.red : null,
-                            ),
+                        DataCell(Text(transaction.date)),
+                        DataCell(Text(transaction.type)),
+                        DataCell(Text(transaction.item)),
+                        DataCell(Text(
+                          transaction.stock,
+                          style: TextStyle(
+                            color: transaction.type == 'keluar' ? Colors.red : null,
                           ),
-                        ),
-                        DataCell(Text(transaction['actor'])),
+                        )),
+                        DataCell(Text(transaction.actor)),
                       ],
                     );
                   }).toList(),

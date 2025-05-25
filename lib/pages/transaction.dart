@@ -6,6 +6,36 @@ import 'common/appbar.dart';
 import 'common/drawer.dart';
 import '../services/api_service.dart';
 
+// lib/data/models/transaction_model.dart
+class Transaction {
+  final int? id;
+  final DateTime date;
+  final String type;
+  final String item;
+  final int stock;
+  final String actor;
+
+  Transaction({
+    this.id,
+    required this.date,
+    required this.type,
+    required this.item,
+    required this.stock,
+    required this.actor,
+  });
+
+  factory Transaction.fromJson(Map<String, dynamic> json) {
+    return Transaction(
+      id: json['id'],
+      date: DateTime.parse(json['date']),
+      type: json['type'],
+      item: json['item'],
+      stock: json['stock'],
+      actor: json['actor'],
+    );
+  }
+}
+
 class TransactionsPage extends StatefulWidget {
   final String? username;
   const TransactionsPage({this.username, Key? key}) : super(key: key);

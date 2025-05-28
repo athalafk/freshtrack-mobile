@@ -58,12 +58,15 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 SizedBox(height: 100),
-                Text(
-                  'Freshtrack',
-                  style: GoogleFonts.aldrich(
-                    fontSize: 60,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
+                FittedBox(
+                  fit: BoxFit.fitWidth,
+                  child: Text(
+                    'Freshtrack',
+                    style: GoogleFonts.aldrich(
+                      fontSize: 60,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.indigo,
+                    ),
                   ),
                 ),
                 SizedBox(height: 30),

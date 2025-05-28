@@ -17,13 +17,28 @@ class BatchBarangDataSource extends DataTableSource {
         DataCell(Text(item.namaBarang)),
         DataCell(Text(item.stok.toString())),
         DataCell(Text(DateFormat('dd/MM/yyyy').format(DateTime.parse(item.tanggalKadaluarsa)))),
-        DataCell(Text(days > 0 ? '$days hari' : 'Expired')),
+        DataCell(
+          Text(
+            days > 0
+                ? '$days hari'
+                : (days == 0
+                ? 'Hari ini'
+                : 'Expired'),
+            style: TextStyle(
+              color: days > 14
+                  ? null 
+                  : (days > 0 
+                      ? Colors.orange 
+                      : Colors.red), 
+            ),
+          ),
+        ),
         DataCell(
           days > 14
               ? const Icon(Icons.check_circle, color: Colors.green)
-              : (days >= 0 && days <= 14)
-                ? const Icon(Icons.warning, color: Colors.orange)
-                : const Icon(Icons.cancel, color: Colors.red),
+              : (days > 0
+              ? const Icon(Icons.warning, color: Colors.orange)
+              : const Icon(Icons.warning, color: Colors.red)),
         ),
       ],
     );

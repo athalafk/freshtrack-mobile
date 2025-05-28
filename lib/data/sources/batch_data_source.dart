@@ -21,15 +21,15 @@ class BatchBarangDataSource extends DataTableSource {
           Text(
             days > 0
                 ? '$days hari'
-                : (days == 0
-                ? 'Hari ini'
-                : 'Expired'),
+                : (days == 0 
+                    ? 'Hari ini' 
+                    : 'Expired'),
             style: TextStyle(
               color: days > 14
-                  ? null 
+                  ? null
                   : (days > 0 
-                      ? Colors.orange 
-                      : Colors.red), 
+                      ? Colors.orange
+                      : Colors.red),
             ),
           ),
         ),
@@ -37,8 +37,8 @@ class BatchBarangDataSource extends DataTableSource {
           days > 14
               ? const Icon(Icons.check_circle, color: Colors.green)
               : (days > 0
-              ? const Icon(Icons.warning, color: Colors.orange)
-              : const Icon(Icons.warning, color: Colors.red)),
+                  ? const Icon(Icons.warning, color: Colors.orange)
+                  : const Icon(Icons.warning, color: Colors.red)),
         ),
       ],
     );

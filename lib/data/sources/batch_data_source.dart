@@ -21,7 +21,9 @@ class BatchBarangDataSource extends DataTableSource {
         DataCell(
           days > 14
               ? const Icon(Icons.check_circle, color: Colors.green)
-              : Icon(Icons.warning, color: days > 0 ? Colors.orange : Colors.red),
+              : (days >= 0 && days <= 14)
+                ? const Icon(Icons.warning, color: Colors.orange)
+                : const Icon(Icons.cancel, color: Colors.red),
         ),
       ],
     );

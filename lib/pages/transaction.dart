@@ -189,7 +189,7 @@ class _TransactionFormState extends State<TransactionForm> {
 
     if (namaBarang.isEmpty || stok <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama barang dan stok wajib diisi (Nama Barang harus hasil autocomplete!)')),
+        const SnackBar(content: Text('Nama barang dan stok wajib diisi (Nama Barang harus hasil autocomplete juga!)')),
       );
       return;
     }
@@ -224,13 +224,26 @@ class _TransactionFormState extends State<TransactionForm> {
           const SnackBar(content: Text('Gagal menambahkan barang masuk')),
         );
       }
-    } else {
-      // Barang Keluar - bisa diimplementasikan nanti
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fitur barang keluar belum diimplementasikan')),
+    } else if (widget.title == 'Barang Keluar') {
+      final success = await ApiService().barangKeluar(
+        namaBarang: namaBarang,
+        stok: stok,
       );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Barang keluar berhasil diproses')),
+        );
+        _stokController.clear();
+        _namaBarangController.clear();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal mengeluarkan barang')),
+        );
+      }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -300,15 +313,15 @@ class _TransactionFormState extends State<TransactionForm> {
         const SizedBox(height: 24),
     ElevatedButton(
     onPressed: submitForm,
-    style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.blue,
-    minimumSize: const Size(double.infinity, 50),
-    ),
-    child: const Text(
-    'Simpan',
-    style: TextStyle(color: Colors.white, fontSize: 16),
-    ),
-    ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue,
+        minimumSize: const Size(double.infinity, 50),
+       ),
+        child: const Text(
+          'Simpan',
+           style: TextStyle(color: Colors.white, fontSize: 16),
+         ),
+         ),
       ],
     );
   }

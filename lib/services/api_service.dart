@@ -7,7 +7,7 @@ import '../data/models/batch_barang.dart';
 import '../data/models/transaction_model.dart';
 
 class ApiService {
-  final String _baseUrl = ('https://freshtrack.azurewebsites.net');
+  final String _baseUrl = ('http://localhost:8000');
 
   Future<User?> login(String username, String password) async {
     try {
@@ -241,4 +241,33 @@ class ApiService {
       return false;
     }
   }
+
+
+  Future<bool> barangKeluar({
+    required String namaBarang,
+    required int stok,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/barang/keluar'),
+        headers: headers,
+        body: jsonEncode({
+          'nama_barang': namaBarang,
+          'stok': stok,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        print('Barang keluar gagal: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Exception barangKeluar: $e');
+      return false;
+    }
+  }
+
 }

@@ -7,7 +7,7 @@ import '../data/models/batch_barang.dart';
 import '../data/models/transaction_model.dart';
 
 class ApiService {
-  final String _baseUrl = ('http://localhost:8000');
+  final String _baseUrl = ('https://freshtrack.azurewebsites.net');
 
   Future<User?> login(String username, String password) async {
     try {
